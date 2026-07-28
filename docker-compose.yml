@@ -1,0 +1,82 @@
+name: api-usuarios
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: api-usuarios-mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: coti
+      MYSQL_DATABASE: db-usuarios
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    networks:
+      - api-usuarios-network
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -u root -pcoti --silent"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: api-usuarios-phpmyadmin
+    restart: unless-stopped
+
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: coti
+
+    ports:
+      - "5052:80"
+
+    volumes:
+      - phpmyadmin_data:/sessions
+
+    networks:
+      - api-usuarios-network
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "php -r \"exit(@fsockopen('localhost', 80) ? 0 : 1);\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+
+volumes:
+  mysql_data:
+    name: api-usuarios-mysql-data
+
+  phpmyadmin_data:
+    name: api-usuarios-phpmyadmin-data
+
+
+networks:
+  api-usuarios-network:
+    name: api-usuarios-network
+    driver: bridge
